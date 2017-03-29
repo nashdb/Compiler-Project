@@ -23,8 +23,8 @@ let rec translate (Ast.Program procedures) =
 
 and translateProcedure (Ast.Procedure {id; formals; typ; body} as proc) = (* YOUR CODE HERE *)
   let newStatement = translateStatement body in
-  let newProc = Ast.Procedure {id =id; formals= formals; typ = typ; body = newStatement} in
-  newProc
+  let newProcedure = Ast.Procedure {id =id; formals= formals; typ = typ; body = newStatement} in
+  newProcedure
 
 and
   translateStatement statement = (* YOUR CODE HERE *)
