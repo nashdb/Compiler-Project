@@ -1,0 +1,293 @@
+mc: 15:41 4.14.2015. Compiling test/e.mc in debug mode.
+
+The input program is:
+
+int g(int x, int y)
+{
+  x = +(+(2, 4), 6);
+  return
+    +(x, y)
+}
+int f(int x, int y)
+{
+  x = +(+(2, 4), 6);
+  y = g(*(4, 8), *(6, 10));
+  x = +(2, 2);
+}
+
+Type Environment is:
+% : int * int -> int
+* : int * int -> int
+** : int * int -> int
++ : int * int -> int
+- : int * int -> int
+/ : int * int -> int
+< : int * int -> bool
+<= : int * int -> bool
+<> : int * int -> bool
+== : int * int -> bool
+> : int * int -> bool
+>= : int * int -> bool
+f : int * int -> int
+g : int * int -> int
+not : bool -> bool
+
+The program is well-typed.
+
+
+After the naming phase:
+
+int g(int x, int y)
+{
+  x =   let 
+      x0 : int = 6
+      x1 : int = 
+        let 
+            x3 : int = 4
+            x4 : int = 2
+            x5 : int = +(x4, x3)
+        in
+          x5
+      x2 : int = +(x1, x0)
+  in
+    x2
+  ;
+  return
+    let 
+        x6 : int = y
+        x7 : int = x
+        x8 : int = +(x7, x6)
+    in
+      x8
+}
+int f(int x, int y)
+{
+  x =   let 
+      x9 : int = 6
+      x10 : int = 
+        let 
+            x12 : int = 4
+            x13 : int = 2
+            x14 : int = +(x13, x12)
+        in
+          x14
+      x11 : int = +(x10, x9)
+  in
+    x11
+  ;
+  y =   let 
+      x15 : int = 
+        let 
+            x21 : int = 10
+            x22 : int = 6
+            x23 : int = *(x22, x21)
+        in
+          x23
+      x16 : int = 
+        let 
+            x18 : int = 8
+            x19 : int = 4
+            x20 : int = *(x19, x18)
+        in
+          x20
+      x17 : int = g(x16, x15)
+  in
+    x17
+  ;
+  x =   let 
+      x24 : int = 2
+      x25 : int = 2
+      x26 : int = +(x25, x24)
+  in
+    x26
+  ;
+}
+
+After the lifting phase:
+
+int g(int x, int y)
+{
+  x =   let 
+      x0 : int = 6
+      x3 : int = 4
+      x4 : int = 2
+      x5 : int = +(x4, x3)
+      x1 : int = x5
+      x2 : int = +(x1, x0)
+  in
+    x2
+  ;
+  return
+    let 
+        x6 : int = y
+        x7 : int = x
+        x8 : int = +(x7, x6)
+    in
+      x8
+}
+int f(int x, int y)
+{
+  x =   let 
+      x9 : int = 6
+      x12 : int = 4
+      x13 : int = 2
+      x14 : int = +(x13, x12)
+      x10 : int = x14
+      x11 : int = +(x10, x9)
+  in
+    x11
+  ;
+  y =   let 
+      x21 : int = 10
+      x22 : int = 6
+      x23 : int = *(x22, x21)
+      x15 : int = x23
+      x18 : int = 8
+      x19 : int = 4
+      x20 : int = *(x19, x18)
+      x16 : int = x20
+      x17 : int = g(x16, x15)
+  in
+    x17
+  ;
+  x =   let 
+      x24 : int = 2
+      x25 : int = 2
+      x26 : int = +(x25, x24)
+  in
+    x26
+  ;
+}
+
+After the copyprop phase:
+
+int g(int x, int y)
+{
+  x =   let 
+      x0 : int = 6
+      x3 : int = 4
+      x4 : int = 2
+      x5 : int = +(x4, x3)
+      x2 : int = +(x5, x0)
+  in
+    x2
+  ;
+  return
+    let 
+        x8 : int = +(x, y)
+    in
+      x8
+}
+int f(int x, int y)
+{
+  x =   let 
+      x9 : int = 6
+      x12 : int = 4
+      x13 : int = 2
+      x14 : int = +(x13, x12)
+      x11 : int = +(x14, x9)
+  in
+    x11
+  ;
+  y =   let 
+      x21 : int = 10
+      x22 : int = 6
+      x23 : int = *(x22, x21)
+      x18 : int = 8
+      x19 : int = 4
+      x20 : int = *(x19, x18)
+      x17 : int = g(x20, x23)
+  in
+    x17
+  ;
+  x =   let 
+      x24 : int = 2
+      x25 : int = 2
+      x26 : int = +(x25, x24)
+  in
+    x26
+  ;
+}
+
+After the control phase:
+
+g:	(x, y)
+	x0 = 6
+	x3 = 4
+	x4 = 2
+	x27 = x4 + x3
+	x5 = x27
+	x28 = x5 + x0
+	x2 = x28
+	x = x2
+	x29 = x + y
+	x8 = x29
+	return x8
+
+f:	(x, y)
+	x9 = 6
+	x12 = 4
+	x13 = 2
+	x30 = x13 + x12
+	x14 = x30
+	x31 = x14 + x9
+	x11 = x31
+	x = x11
+	x21 = 10
+	x22 = 6
+	x32 = x22 * x21
+	x23 = x32
+	x18 = 8
+	x19 = 4
+	x33 = x19 * x18
+	x20 = x33
+	x34 = call g(x20, x23)
+	x17 = x34
+	y = x17
+	x24 = 2
+	x25 = 2
+	x35 = x25 + x24
+	x26 = x35
+	x = x26
+
+CG Environment is:
+x : 3
+x0 : -6
+x2 : -3
+x27 : -7
+x28 : -4
+x29 : -2
+x3 : -9
+x4 : -8
+x5 : -5
+x8 : -1
+y : 2
+
+CG Environment is:
+x : 3
+x11 : -15
+x12 : -21
+x13 : -20
+x14 : -17
+x17 : -5
+x18 : -11
+x19 : -10
+x20 : -8
+x21 : -14
+x22 : -13
+x23 : -7
+x24 : -4
+x25 : -3
+x26 : -1
+x30 : -19
+x31 : -16
+x32 : -12
+x33 : -9
+x34 : -6
+x35 : -2
+x9 : -18
+y : 2
+
+Emitting MIPS assembley code to test/e.asm
+
+
