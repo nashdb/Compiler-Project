@@ -1,4 +1,4 @@
-mc: 19:41 4.28.2017. Compiling test/fact.mc in debug mode.
+mc: 22:58 4.25.2017. Compiling test/fact.mc in debug mode.
 
 The input program is:
 
@@ -135,19 +135,6 @@ l0:	nop
 	x2 = x12
 	return x2
 l1:	nop
-
-CG Environment is:
-n : 2
-x10 : -8
-x11 : -9
-x12 : -2
-x13 : -4
-x14 : -6
-x2 : -1
-x4 : -3
-x5 : -7
-x7 : -5
-x8 : -10
 
 Emitting MIPS assembley code to test/fact.asm
 
