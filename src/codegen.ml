@@ -223,7 +223,19 @@ let makeEnvInstruction env offset (Q.Instruction {label; op}) =
    are formals are given positive offsets (see the picture above), identifiers that
    are local variables are given negative offsets.
 *)
-let makeEnv formals instructions = Environment.empty (* YOUR CODE HERE *)
+
+let makeEnvInstructions env os i =
+  makeEnvInstruction env os i
+
+let makeEnv formals instructions =  (* YOUR CODE HERE *)
+  let rec listIter formals offset env=
+    match formals with
+    | [] -> env
+    | a :: newList -> let newoff = offset + 1 in
+      let newEnv = E.add a offset env in
+      listIter newList newoff newEnv in
+  let env = listIter (List.rev formals) 2 E.empty in
+  List.fold_right (fun i -> (fun (env, os) -> makeEnvInstruction env os i)) instructions (env, -1)
 
 let loadRegister reg env opnd maybeLabel =
   match opnd with
@@ -256,24 +268,103 @@ let storeRegister reg env opnd maybeLabel =
   | _ -> failwith "storeRegister: bad store operand"
 
 let translateOperand reg env opnd maybeLabel =
-  I.toInstruction(None, Opn.Nop, None)             (* YOUR CODE HERE *)
+  loadRegister reg env opnd maybeLabel             (* YOUR CODE HERE *)
+
 
 
 let translateRHS env rhs maybeLabel =
-  fIL [I.toInstruction(None, Opn.Nop, None)]       (* YOUR CODE HERE *)
+  match rhs with
+  | Q.Operand op-> let newOp = translateOperand accumulator env op maybeLabel in
+    fIL [newOp]
+  | Q.BinPrimOp {op; opnds = {src1; src2}}->
+    let newSrc1 = translateOperand operand1Reg env src1 maybeLabel in
+    let newSrc2 = translateOperand operand2Reg env src2 maybeLabel in
+    (match E.find op B.dynamicBasis with
+     | B.CodeGenerator codegen -> let newOp = codegen [Opnd.Reg accumulator; Opnd.Reg operand1Reg; Opnd.Reg operand2Reg]
+       in CS.concat (fIL [newSrc1; newSrc2]) newOp
+     )
+  | Q.UnPrimOp {op; opnd}-> let newOp = translateOperand operand1Reg env opnd maybeLabel in
+    (match E.find op B.dynamicBasis with
+        | B.CodeGenerator codgen ->
+          let performOp = codgen [Opnd.Reg accumulator; Opnd.Reg operand1Reg]
+          in CS.concat (fIL [newOp]) performOp
+    )
+  | Q.FunCall {label; opnds} ->
+    let opPush op=
+      let a = fIL[translateOperand operand1Reg env op None] in
+      let b = push(Opnd.Reg operand1Reg) None ""
+      in CS.concat a b
+    in let mylist = List.map opPush opnds in
+    let opPush1 = List.fold_left CS.concat CS.empty mylist in
+    let return = push (Opnd.Reg Opnd.ReturnAddress) None "" in
+    let jump = fIL[I.toInstruction(None, Opn.Jal (Opnd.Label label), None)] in
+    let pop= pop(Opnd.Reg (Opnd.ReturnAddress)) None "" in
+    let n = List.length opnds in
+    let args = fIL[I.toInstruction(None, Opn.Addi{rd = Opnd.Reg Opnd.StackPointer; rs = Opnd.Reg Opnd.StackPointer; const16 = Opnd.Const16 (wordSize * n)}, None)] in
+    CS.concat opPush1 (CS.concat return (CS.concat jump(CS.concat pop args)))
+        (* YOUR CODE HERE *)
 
 let translateOperation env opn maybeLabel =
-  fIL [I.toInstruction(None, Opn.Nop, None)]       (* YOUR CODE HERE *)
+  match opn with
+  | Q.Gets {dst; src} -> let newSrc = translateRHS env src maybeLabel in
+    let newDst = translateOperand accumulator env dst maybeLabel in
+    CS.concat newSrc( fIL[newDst])
+  | Q.Jmp label-> fIL [I.toInstruction(maybeLabel, Opn.J(Opnd.Label label), None)]
+  | Q.JmpZero {cond; dest} -> let newrhs = translateRHS env cond maybeLabel in
+    fIL [I.toInstruction(None, Opn.Nop, None)]
+  | Q.Call {label; opnds} ->
+    let opPush op=
+       let a = fIL[translateOperand operand1Reg env op None] in
+       let b = push(Opnd.Reg operand1Reg) None ""
+       in CS.concat a b
+    in let mylist = List.map opPush opnds in
+    let opPush1 = List.fold_left CS.concat CS.empty mylist in
+    let return = push (Opnd.Reg Opnd.ReturnAddress) None "" in
+    let jump = fIL[I.toInstruction(None, Opn.Jal (Opnd.Label label), None)] in
+    let pop= pop(Opnd.Reg (Opnd.ReturnAddress)) None "" in
+    let n = List.length opnds in
+    let args = fIL[I.toInstruction(None, Opn.Addi{rd = Opnd.Reg Opnd.StackPointer; rs = Opnd.Reg Opnd.StackPointer; const16 = Opnd.Const16 (wordSize * n)}, None)] in
+    CS.concat opPush1 (CS.concat return (CS.concat jump(CS.concat pop args)))
+  | Q.Ret op -> let newOp = translateOperand accumulator env op maybeLabel in
+    let newIns = I.toInstruction(None, Opn.Move{rd = Opnd.Reg Opnd.StackPointer; rs = Opnd.Reg Opnd.FramePointer}, None) in
+    let newIns2 = I.toInstruction(None, Opn.Jr(Opnd.Reg Opnd.ReturnAddress), None) in
+    fIL [newOp; newIns; newIns2]
+  | Q.Noop -> fIL [I.toInstruction(maybeLabel, Opn.Nop, Some "")]       (* YOUR CODE HERE *)
 
 let translateInstruction env (Q.Instruction {label = maybeLabel;
                                              op = opn} : Q.instruction) : CS.t =
-  CS.empty                                         (* YOUR CODE HERE *)
+  translateOperation env opn maybeLabel                                       (* YOUR CODE HERE *)
+
+let rec instrucIter code env=
+  match code with
+  | [] -> []
+  | a :: morecode -> let ins = translateInstruction env a in
+    ins :: (instrucIter morecode env)
 
 let translateProcedure (Q.Procedure {entry; formals; code}) =
-  CS.empty                                         (* YOUR CODE HERE *)
+  let (env, locals) = makeEnv formals code in
+  let empty = Debug.dumpCGEnv env in
+  let mylist = instrucIter code env in
+  let prologue = makePrologue entry locals
+  in CS.concat prologue (List.fold_left CS.concat CS.empty
+                           mylist)
+
+ (* YOUR CODE HERE *)
 
 (*
  * The main function. It leaves the result of evaluating and expression in
  * the accumulator.
 *)
-let translate procedures = CS.empty                (* YOUR CODE HERE *)
+let rec procedureIter procedures =
+  match procedures with
+  | [] -> []
+  | a :: b -> let newP = translateProcedure a in
+    newP :: (procedureIter b)
+
+let translate procedures =
+  let thisOpen = I.toInstruction(None, Opn.Data, None) in
+  let thisText = I.toInstruction(None, Opn.Text, None) in
+  CS.concat(fIL[thisOpen; thisText]) (List.fold_left CS.concat CS.empty (procedureIter procedures))
+
+
+(* YOUR CODE HERE *)

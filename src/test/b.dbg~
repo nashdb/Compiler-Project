@@ -1,0 +1,157 @@
+mc: 19:40 4.19.2017. Compiling test/b.mc in debug mode.
+
+The input program is:
+
+int f(int a)
+{
+  int b;
+  if (>(a, 4)) then
+    {
+      b = +(2, *(a, 8));
+    }
+  else
+    {
+      b = 343;
+    }
+  return
+    b
+}
+
+Type Environment is:
+% : int * int -> int
+* : int * int -> int
+** : int * int -> int
++ : int * int -> int
+- : int * int -> int
+/ : int * int -> int
+< : int * int -> bool
+<= : int * int -> bool
+<> : int * int -> bool
+== : int * int -> bool
+> : int * int -> bool
+>= : int * int -> bool
+f : int -> int
+not : bool -> bool
+
+The program is well-typed.
+
+
+After the naming phase:
+
+int f(int a)
+{
+  int b;
+  if (  let 
+      x6 : int = 4
+      x7 : int = a
+      x8 : int = >(x7, x6)
+  in
+    x8
+  ) then
+    {
+      b =       let 
+          x0 : int =
+            let 
+                x3 : int = 8
+                x4 : int = a
+                x5 : int = *(x4, x3)
+            in
+              x5
+          x1 : int = 2
+          x2 : int = +(x1, x0)
+      in
+        x2
+      ;
+    }
+  else
+    {
+      b = 343;
+    }
+  return
+    b
+}
+
+After the lifting phase:
+
+int f(int a)
+{
+  int b;
+  if (  let 
+      x6 : int = 4
+      x7 : int = a
+      x8 : int = >(x7, x6)
+  in
+    x8
+  ) then
+    {
+      b =       let 
+          x3 : int = 8
+          x4 : int = a
+          x5 : int = *(x4, x3)
+          x0 : int = x5
+          x1 : int = 2
+          x2 : int = +(x1, x0)
+      in
+        x2
+      ;
+    }
+  else
+    {
+      b = 343;
+    }
+  return
+    b
+}
+
+After the copyprop phase:
+
+int f(int a)
+{
+  int b;
+  if (  let 
+      x6 : int = 4
+      x7 : int = a
+      x8 : int = >(x7, x6)
+  in
+    x8
+  ) then
+    {
+      b =       let 
+          x3 : int = 8
+          x4 : int = a
+          x5 : int = *(x4, x3)
+          x0 : int = x5
+          x1 : int = 2
+          x2 : int = +(x1, x0)
+      in
+        x2
+      ;
+    }
+  else
+    {
+      b = 343;
+    }
+  return
+    b
+}
+
+After the control phase:
+
+f:	(a)
+	nop
+	nop
+	jmpzero 0, l0
+	nop
+	nop
+	b = 0
+	jmp l1
+l0:	nop
+	return 343
+	b = 0
+l1:	nop
+	return b
+	return 0
+
+Emitting MIPS assembley code to test/b.asm
+
+

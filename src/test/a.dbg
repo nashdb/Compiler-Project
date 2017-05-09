@@ -1,4 +1,4 @@
-mc: 21:49 3.29.2017. Compiling test/a.mc in debug mode.
+mc: 19:55 4.19.2017. Compiling test/a.mc in debug mode.
 
 The input program is:
 
@@ -34,7 +34,19 @@ After the naming phase:
 int main(int a)
 {
   int b;
-  b = +(2, *(a, 8));
+  b =   let 
+      x0 : int =
+        let 
+            x3 : int = 8
+            x4 : int = a
+            x5 : int = *(x4, x3)
+        in
+          x5
+      x1 : int = 2
+      x2 : int = +(x1, x0)
+  in
+    x2
+  ;
   return
     b
 }
@@ -44,7 +56,16 @@ After the lifting phase:
 int main(int a)
 {
   int b;
-  b = +(2, *(a, 8));
+  b =   let 
+      x3 : int = 8
+      x4 : int = a
+      x5 : int = *(x4, x3)
+      x0 : int = x5
+      x1 : int = 2
+      x2 : int = +(x1, x0)
+  in
+    x2
+  ;
   return
     b
 }
@@ -54,7 +75,16 @@ After the copyprop phase:
 int main(int a)
 {
   int b;
-  b = +(2, *(a, 8));
+  b =   let 
+      x3 : int = 8
+      x4 : int = a
+      x5 : int = *(x4, x3)
+      x0 : int = x5
+      x1 : int = 2
+      x2 : int = +(x1, x0)
+  in
+    x2
+  ;
   return
     b
 }
@@ -62,6 +92,11 @@ int main(int a)
 After the control phase:
 
 main:	(a)
+	nop
+	nop
+	b = 0
+	return b
+	return 0
 
 Emitting MIPS assembley code to test/a.asm
 
